@@ -133,5 +133,3 @@ def callback_test(*args, **kwargs): #pylint: disable=unused-argument
     children = [line_graph]
 
     return [children]
-
-

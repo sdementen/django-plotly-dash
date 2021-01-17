@@ -605,32 +605,20 @@ class WrappedDash(Dash):
         if len(argMap) > 0:
             argMap['callback_context'] = callback_context
 
-        outputs = []
-        try:
-            if output[:2] == '..' and output[-2:] == '..':
-                # Multiple outputs
-                outputs = output[2:-2].split('...')
-                target_id = output
-        except:
-            pass
-
-        single_case = False
-        if len(outputs) < 1:
-            try:
-                output_id = output['id']
-                output_property = output['property']
-                target_id = "%s.%s" %(output_id, output_property)
-            except:
-                target_id = output
-                output_id, output_property = output.split(".")
-            single_case = True
-            outputs = [output,]
+        single_case = not(output.startswith('..') and output.endswith('..'))
+        if single_case:
+            # single Output (not in a list)
+            output_id, output_property = output.split(".")
+            outputs = [output]
+        else:
+            # multiple outputs in a list (the list could contain a single item)
+            outputs = output[2:-2].split('...')
 
         args = []
 
         da = argMap.get('dash_app', None)
 
-        callback_info = self.callback_map[target_id]
+        callback_info = self.callback_map[output]
 
         for component_registration in callback_info['inputs']:
             for c in inputs:
@@ -653,12 +641,13 @@ class WrappedDash(Dash):
         argMap['outputs_list'] = outputs_list
 
         # Special: intercept case of insufficient arguments
-        # This happens when a propery has been updated with a pipe component
+        # This happens when a property has been updated with a pipe component
         # TODO see if this can be attacked from the client end
 
         if len(args) < len(callback_info['inputs']):
             return 'EDGECASEEXIT'
 
+        res = callback_info['callback'](*args, **argMap)
         callback = callback_info["callback"]
         # smart injection of parameters if .expanded is defined
         if callback.expanded:
